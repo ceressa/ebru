@@ -56,6 +56,7 @@
     <div class="palette" id="palette"></div>
     <span class="sep"></span>
     <button class="icon on" id="autoBtn" title="Otomatik akış (boştayken kendi kendine)">✦</button>
+    <button class="icon" id="symBtn" title="Simetri: kapalı → 2 → 4 → 6 → 8 kat (çiçek/mandala)">❋</button>
     <button class="icon" id="clearBtn" title="Temizle">⟲</button>
     <button class="icon" id="saveBtn" title="İndir (PNG)">⤓</button>
     <button class="icon" id="soundBtn" title="Ortam sesi">♪</button>
@@ -102,6 +103,7 @@ const INKS = [
 ];
 let current = INKS[0].c;
 let autoIdx = 0;
+let symmetry = 1;   // 1=yok, 2/4/6/8 = ayna/cicek simetrisi
 
 // gorunur renk -> sogurma vektoru (paper * exp(-A) o renge yaklasir)
 function inkAbsorption(c, strength){
@@ -207,16 +209,29 @@ void main(){
 }`;
 
 const F_DISPLAY = HEAD + `
-uniform sampler2D uDye;
+uniform sampler2D uDye; uniform float uSym; uniform float uAspect;
 const vec3 uPaper = vec3(0.937,0.918,0.878);
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p){
   vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
   return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y);
 }
+vec2 foldUV(vec2 uv){
+  if(uSym < 1.5) return uv;
+  vec2 p = uv - 0.5; p.x *= uAspect;
+  float r = length(p);
+  float a = atan(p.y, p.x);
+  float seg = 6.28318530718 / uSym;
+  a = mod(a, seg);
+  a = min(a, seg - a);            // ayna -> kaleidoskop (cicek/hatip simetrisi)
+  p = vec2(cos(a), sin(a)) * r;
+  p.x /= uAspect;
+  return p + 0.5;
+}
 void main(){
+  vec2 duv = foldUV(vUv);
   float fiber = noise(vUv*420.0)*0.028 + noise(vUv*180.0)*0.022 + noise(vUv*60.0)*0.018;
-  vec3 A = max(texture(uDye, vUv).rgb, 0.0);
+  vec3 A = max(texture(uDye, duv).rgb, 0.0);
   vec3 col = uPaper * exp(-A) + fiber;
   vec2 uv2 = vUv*(1.0-vUv.yx);
   float vign = pow(uv2.x*uv2.y*15.0, 0.18);
@@ -358,6 +373,8 @@ function step(dt){
 function render(){
   gl.useProgram(prog.display.program);
   gl.uniform1i(prog.display.u.uDye, dye.read.attach(0));
+  gl.uniform1f(prog.display.u.uSym, symmetry);
+  gl.uniform1f(prog.display.u.uAspect, canvas.width/canvas.height);
   blit(null);
 }
 
@@ -455,6 +472,12 @@ INKS.forEach((p,i)=>{
   pal.appendChild(b);
 });
 document.getElementById('autoBtn').addEventListener('click', function(){ autoFlow=!autoFlow; this.classList.toggle('on', autoFlow); });
+const SYMMETRIES=[1,2,4,6,8]; let symIdx=0;
+document.getElementById('symBtn').addEventListener('click', function(){
+  symIdx=(symIdx+1)%SYMMETRIES.length; symmetry=SYMMETRIES[symIdx];
+  this.classList.toggle('on', symmetry>1);
+  this.textContent = symmetry>1 ? String(symmetry) : '❋';
+});
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   render();
