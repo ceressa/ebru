@@ -45,21 +45,47 @@
   .fallback{position:fixed;inset:0;display:none;place-items:center;text-align:center;
     color:#5a4d3a;padding:30px;font-size:16px;line-height:1.7}
   .fallback.show{display:grid}
+
+  .tray{position:fixed;inset:0;pointer-events:none;z-index:5;
+    border:16px solid #4a3420;
+    border-image:linear-gradient(135deg,#6e5132,#3a2814 40%,#5a4126 70%,#2c1d0f) 1;
+    box-shadow:inset 0 0 0 2px rgba(201,169,106,.4), inset 0 0 46px rgba(0,0,0,.4)}
+  .brand{z-index:10}
+  .bar{flex-wrap:wrap;max-width:96vw;justify-content:center;z-index:10}
+  .mode{padding:0 14px;height:38px;border-radius:19px;border:1px solid var(--line);
+    background:rgba(255,255,255,.42);color:var(--ink);font-family:inherit;font-size:13px;cursor:pointer;letter-spacing:.02em}
+  .mode:hover{background:#fff;border-color:rgba(70,60,46,.36)}
+  .presets{position:fixed;left:50%;bottom:82px;transform:translateX(-50%) translateY(8px);
+    display:none;gap:8px;z-index:11;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:8px;box-shadow:0 12px 34px rgba(40,32,18,.18)}
+  .presets.show{display:flex}
+  .presets button{padding:8px 13px;border-radius:9px;border:1px solid var(--line);
+    background:rgba(255,255,255,.55);color:var(--ink);font-family:inherit;font-size:13px;cursor:pointer}
+  .presets button:hover{background:#fff}
 </style>
 </head>
 <body>
   <canvas id="c"></canvas>
+  <div class="tray"></div>
   <div class="brand"><b>EBRU</b><span>su üstünde mürekkep</span></div>
   <div class="hint" id="hint">dokun: mürekkep damlat　·　sürükle: suyu karıştır</div>
 
   <div class="bar">
+    <button class="mode" id="modeBtn" title="Araç: Karıştır / Tarak / Çiçek">Karıştır</button>
+    <span class="sep"></span>
     <div class="palette" id="palette"></div>
     <span class="sep"></span>
     <button class="icon on" id="autoBtn" title="Otomatik akış (boştayken kendi kendine)">✦</button>
     <button class="icon" id="symBtn" title="Simetri: kapalı → 2 → 4 → 6 → 8 kat (çiçek/mandala)">❋</button>
+    <button class="icon" id="patBtn" title="Hazır desen">✿</button>
     <button class="icon" id="clearBtn" title="Temizle">⟲</button>
     <button class="icon" id="saveBtn" title="İndir (PNG)">⤓</button>
     <button class="icon" id="soundBtn" title="Ortam sesi">♪</button>
+  </div>
+  <div class="presets" id="presets">
+    <button data-p="gelgit">Gel-git</button>
+    <button data-p="sal">Şal</button>
+    <button data-p="bulbul">Bülbül yuvası</button>
   </div>
 
   <div class="fallback" id="fallback">
@@ -100,10 +126,13 @@ const INKS = [
   {name:'Yeşil',    c:hexRGB('#1f7a52')},
   {name:'Mor',      c:hexRGB('#6b3fa0')},
   {name:'Siyah',    c:hexRGB('#1a1a20')},
+  {name:'Altın',    c:hexRGB('#c9a227')},
 ];
 let current = INKS[0].c;
 let autoIdx = 0;
 let symmetry = 1;   // 1=yok, 2/4/6/8 = ayna/cicek simetrisi
+let tool = 'stir';  // stir | comb | flower
+let scriptFn = null, scriptMs = 0;
 
 // gorunur renk -> sogurma vektoru (paper * exp(-A) o renge yaklasir)
 function inkAbsorption(c, strength){
@@ -409,6 +438,42 @@ function clearAll(){
   }
 }
 
+/* ---------------- tarak ve cicek araclari ---------------- */
+function combStroke(x,y,px,py){
+  const dx=x-px, dy=y-py, len=Math.hypot(dx,dy); if(len<1e-4) return;
+  const asp=canvas.width/canvas.height;
+  const ax=-dy/len, ay=dx/len;                 // tarak ekseni (harekete dik)
+  const fx=dx*config.SPLAT_FORCE, fy=dy*config.SPLAT_FORCE;
+  const teeth=22, span=0.92;
+  for(let i=0;i<=teeth;i++){ const t=(i/teeth-0.5)*span; splatVelocity(x+ax*t/asp, y+ay*t, fx, fy, 0.5); }
+}
+function combAt(cx,cy, ax,ay, fx,fy){
+  const teeth=28, span=1.0;
+  for(let i=0;i<=teeth;i++){ const t=(i/teeth-0.5)*span; splatVelocity(cx+ax*t, cy+ay*t, fx, fy, 0.5); }
+}
+function makeFlower(x,y,color){
+  splatDye(x, y, inkAbsorption(color, 1.1), 3.6);                                      // buyuk taban
+  splatDye(x, y, inkAbsorption(INKS[(Math.random()*INKS.length)|0].c, 1.4), 1.1);      // kontrast merkez
+  const N=6;
+  for(let i=0;i<N;i++){
+    const a=i*2*Math.PI/N, ox=Math.cos(a), oy=Math.sin(a);
+    for(let j=1;j<=4;j++){ const rr=0.018*j; splatVelocity(x+ox*rr, y+oy*rr, ox*185, oy*185, 0.7); }
+  }
+  lastInteraction=performance.now();
+}
+function battalGround(){
+  for(let i=0;i<34;i++){ const x=0.08+Math.random()*0.84, y=0.1+Math.random()*0.8; dropInk(x,y, INKS[(Math.random()*INKS.length)|0].c, 0.5+Math.random()*0.6); }
+}
+
+/* ---------------- hazir desenler ---------------- */
+function runScript(fn,ms){ scriptFn=fn; scriptMs=ms; lastInteraction=performance.now()+ms; }
+function presetGelGit(){ clearAll(); battalGround(); let ph=0;
+  runScript((now,dt)=>{ ph+=dt; const y=0.5+0.45*Math.sin(ph*2.2); const dir=Math.cos(ph*2.2)>=0?1:-1; combAt(0.5,y, 1,0, 0,dir*72); }, 2600); }
+function presetSal(){ presetGelGit();
+  setTimeout(()=>{ let ph=0; runScript((now,dt)=>{ ph+=dt; const x=0.5+0.45*Math.sin(ph*2.2); const dir=Math.cos(ph*2.2)>=0?1:-1; combAt(x,0.5, 0,1, dir*72,0); }, 2200); }, 2750); }
+function presetBulbul(){ clearAll(); battalGround(); dropInk(0.5,0.5,current,1.2); let ph=0;
+  runScript((now,dt)=>{ ph+=dt; for(let i=0;i<12;i++){ const a=i*Math.PI/6+ph*2.2, r=0.05+0.18*((ph*0.35)%1); splatVelocity(0.5+Math.cos(a)*r, 0.5+Math.sin(a)*r, -Math.sin(a)*72, Math.cos(a)*72, 1.0); } }, 2600); }
+
 /* ---------------- otomatik akis ---------------- */
 let autoFlow=true, nextDrop=1100, nextStir=2400, lastInteraction=-99999;
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
@@ -434,7 +499,8 @@ function autoUpdate(now,dt){
 let lastT=0;
 function frame(t){
   const now=t, dt=Math.min((t-lastT)/1000 || 0.016, 0.02); lastT=t;
-  autoUpdate(now, dt);
+  if(scriptFn){ scriptFn(now, dt); scriptMs-=dt*1000; if(scriptMs<=0){ scriptFn=null; lastInteraction=now; } }
+  else autoUpdate(now, dt);
   step(dt);
   render();
   requestAnimationFrame(frame);
@@ -446,14 +512,16 @@ function uvOf(e){ const r=canvas.getBoundingClientRect(); return [ (e.clientX-r.
 canvas.addEventListener('pointerdown', e=>{
   canvas.setPointerCapture(e.pointerId);
   const [u,v]=uvOf(e); pointer.down=true; pointer.lx=u; pointer.ly=v;
-  lastInteraction=performance.now(); hideHint();
-  dropInk(u, v, current, 0.7+Math.random()*0.3);
+  scriptFn=null; lastInteraction=performance.now(); hideHint();
+  if(tool==='flower') makeFlower(u, v, current);
+  else dropInk(u, v, current, 0.7+Math.random()*0.3);
   if(audioOn) playBell();
 });
 canvas.addEventListener('pointermove', e=>{
   if(!pointer.down) return;
   const [u,v]=uvOf(e);
-  splatVelocity(u, v, (u-pointer.lx)*config.SPLAT_FORCE, (v-pointer.ly)*config.SPLAT_FORCE, 1.0);
+  if(tool==='comb') combStroke(u, v, pointer.lx, pointer.ly);
+  else splatVelocity(u, v, (u-pointer.lx)*config.SPLAT_FORCE, (v-pointer.ly)*config.SPLAT_FORCE, 1.0);
   pointer.lx=u; pointer.ly=v; lastInteraction=performance.now();
 });
 canvas.addEventListener('pointerup', ()=>{ pointer.down=false; });
@@ -478,6 +546,23 @@ document.getElementById('symBtn').addEventListener('click', function(){
   this.classList.toggle('on', symmetry>1);
   this.textContent = symmetry>1 ? String(symmetry) : '❋';
 });
+
+const MODES=[['stir','Karıştır'],['comb','Tarak'],['flower','Çiçek']]; let modeIdx=0;
+document.getElementById('modeBtn').addEventListener('click', function(){
+  modeIdx=(modeIdx+1)%MODES.length; tool=MODES[modeIdx][0]; this.textContent=MODES[modeIdx][1];
+  if(tool==='flower' && symmetry===1){   // cicek simetriyle guzel: otomatik 6 kat
+    symmetry=6; symIdx=SYMMETRIES.indexOf(6);
+    const sb=document.getElementById('symBtn'); sb.classList.add('on'); sb.textContent='6';
+  }
+});
+const presetsEl=document.getElementById('presets');
+document.getElementById('patBtn').addEventListener('click', function(e){ e.stopPropagation(); presetsEl.classList.toggle('show'); });
+presetsEl.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+  presetsEl.classList.remove('show'); hideHint();
+  const p=b.dataset.p;
+  if(p==='gelgit') presetGelGit(); else if(p==='sal') presetSal(); else presetBulbul();
+}));
+window.addEventListener('pointerdown', e=>{ if(!presetsEl.contains(e.target) && e.target.id!=='patBtn') presetsEl.classList.remove('show'); }, true);
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   render();
