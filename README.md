@@ -1,23 +1,21 @@
-# Ebru - Su Üstünde Sanat
+# 墨流し · Suminagashi
 
-Tarayıcıda çalışan, gerçek marbling fiziğiyle bir ebru (kağıt ebrusu) atölyesi.
-Tek dosya (`index.html`), sıfır bağımlılık.
+Tarayıcıda gerçek zamanlı akışkan simülasyonuyla suminagashi (Japon "yüzen mürekkep" sanatı).
+Tek dosya (`index.html`), sıfır bağımlılık, saf WebGL2.
 
 ## Canlı
 
 https://ceressa.github.io/ebru/
 
-## Özellikler
+## Nasıl çalışır
 
-- Gerçek mürekkep yayılımı: her damla bir öncekini halka halka iter (concentric displacement)
-- Araçlar: Damla, Serpme (fırça savurma), Biz, Tarak
-- Hazır desenler: Gel-git, Şal, Taraklı
-- 10 geleneksel ebru rengi + özel renk seçici
-- Damla açılma animasyonu, su yüzeyi dokusu, ahşap tekne çerçevesi
-- Geri al (Ctrl+Z), temizle, PNG indir
-- Dokunmatik ve fare desteği
+- Navier-Stokes tabanlı GPU akışkan simülasyonu: advection, vorticity (girdap), basınç çözümü
+- Mürekkep, kağıt üzerine Beer-Lambert soğurma modeliyle çizilir; renkler doğal biçimde üst üste biner
+- Dokun: eşmerkezli mürekkep halkası bırak (önceki halkaları dışarı iter)
+- Sürükle: suyu karıştır, deseni akıt
+- 6 sakin renk, açılıp kapanabilen ortam sesi, PNG indir, temizle
 
-## Kullanım
+## Eski sürüm
 
-`index.html` dosyasını herhangi bir tarayıcıda aç. Önce Serpme ile zemini at,
-sonra Damla ile renkleri bırak, en son Biz/Tarak ile deseni aç.
+Türk ebrusu (Canvas 2D) sürümü korunuyor: [ebru-classic.html](ebru-classic.html)
+Canlı: https://ceressa.github.io/ebru/ebru-classic.html

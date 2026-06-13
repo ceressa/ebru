@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Ebru · Su Üstünde Sanat</title>
+<style>
+  :root{
+    --bg:#191512; --bg2:#221c17;
+    --panel:#241d18; --panel2:#2c241d;
+    --line:#3a2f25; --line2:#4a3b2c;
+    --text:#efe6d6; --muted:#b6a78f;
+    --accent:#c9a96a; --accent2:#e3c98c;
+    --shadow:0 18px 50px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 700px at 50% -10%, #2a221b 0%, var(--bg) 60%) fixed;
+    color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    display:flex; flex-direction:column; min-height:100%;
+    overscroll-behavior:none; -webkit-user-select:none; user-select:none;
+  }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px clamp(16px,4vw,40px) 8px;
+  }
+  .brand{display:flex; align-items:center; gap:14px}
+  .seal{
+    width:42px;height:42px;border-radius:50%;
+    display:grid;place-items:center;
+    background:radial-gradient(circle at 35% 30%, #2c241d, #141009);
+    border:1px solid var(--line2);
+    color:var(--accent2); font-size:22px; box-shadow:inset 0 0 12px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.4);
+  }
+  .brand h1{
+    margin:0; font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
+    font-weight:600; letter-spacing:.12em; font-size:26px;
+    color:var(--accent2); line-height:1;
+  }
+  .brand p{margin:3px 0 0; font-size:12.5px; color:var(--muted); letter-spacing:.18em; text-transform:lowercase}
+  .topbar .tip{font-size:12.5px;color:var(--muted);max-width:340px;text-align:right;line-height:1.5}
+
+  main{flex:1; display:grid; place-items:center; padding:6px clamp(12px,3vw,34px) 4px}
+
+  .tray-frame{
+    padding:clamp(14px,2.2vw,26px);
+    border-radius:14px;
+    background:
+      linear-gradient(145deg,#5b4326,#3c2c18 38%,#2a1e10 72%,#48341c),
+      #3a2a17;
+    box-shadow:var(--shadow),
+      inset 0 2px 3px rgba(255,220,160,.18),
+      inset 0 -3px 8px rgba(0,0,0,.55);
+    position:relative;
+  }
+  .tray-frame::before{
+    content:""; position:absolute; inset:8px; border-radius:9px;
+    border:1px solid rgba(201,169,106,.35);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.4);
+    pointer-events:none;
+  }
+  #stage{
+    position:relative;
+    width:min(90vw, 1060px); aspect-ratio:3/2; max-height:64vh;
+    border-radius:6px; overflow:hidden;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.5), inset 0 6px 26px rgba(0,0,0,.4);
+  }
+  @media (max-aspect-ratio:1/1){ #stage{aspect-ratio:1/1; max-height:52vh} }
+  #tray{
+    position:absolute; inset:0; width:100%; height:100%; display:block;
+    cursor:crosshair; touch-action:none;
+  }
+  #stage::after{ /* yuzey parlakligi, dekoratif */
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(125deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 28%);
+    mix-blend-mode:screen; opacity:.5;
+  }
+  #hint{
+    position:absolute; inset:0; display:grid; place-items:center; text-align:center;
+    color:#5b4a33; font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
+    font-size:clamp(15px,2.4vw,21px); letter-spacing:.04em; pointer-events:none;
+    transition:opacity .6s ease; padding:20px;
+  }
+  #hint span{display:block;font-size:.7em;color:#7a6647;margin-top:10px;letter-spacing:.02em}
+  #hint.gone{opacity:0}
+
+  .dock{
+    display:flex; flex-wrap:wrap; gap:14px; justify-content:center; align-items:stretch;
+    padding:14px clamp(12px,3vw,34px) 26px;
+  }
+  .group{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; display:flex; flex-direction:column; gap:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .group h3{
+    margin:0; font-size:10.5px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); font-weight:600;
+  }
+  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+  button{font-family:inherit; color:var(--text); cursor:pointer}
+  .tool{
+    width:64px; height:58px; border-radius:10px; border:1px solid var(--line2);
+    background:linear-gradient(180deg,#2f261e,#241d17);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    font-size:11px; color:var(--muted); transition:.15s;
+  }
+  .tool svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .tool:hover{border-color:var(--accent);color:var(--text)}
+  .tool.active{
+    color:#1c160e; border-color:var(--accent2);
+    background:linear-gradient(180deg,var(--accent2),var(--accent));
+    box-shadow:0 0 0 1px rgba(227,201,140,.4), 0 6px 16px rgba(201,169,106,.3);
+  }
+
+  .swatch{
+    width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.12);
+    padding:0; transition:.15s; position:relative;
+  }
+  .swatch:hover{transform:translateY(-2px)}
+  .swatch.active{border-color:var(--accent2); box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+  .swatch.custom{display:grid;place-items:center;background:conic-gradient(from 0deg,#e34,#fb3,#3c6,#39f,#a4f,#e34);color:#fff}
+  .swatch.custom input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+  .slider label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:3px}
+  .slider b{color:var(--accent2);font-weight:600}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:170px;height:4px;border-radius:3px;
+    background:linear-gradient(90deg,var(--accent),#5b4a33);outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--accent2);border:2px solid #1c160e;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.5)
+  }
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--accent2);border:2px solid #1c160e;cursor:pointer}
+
+  .act{
+    padding:9px 14px;border-radius:9px;border:1px solid var(--line2);
+    background:linear-gradient(180deg,#2f261e,#241d17);font-size:12.5px;letter-spacing:.03em;
+    display:flex;align-items:center;gap:7px;transition:.15s;
+  }
+  .act:hover{border-color:var(--accent);color:var(--accent2)}
+  .act.warn:hover{border-color:#c5694a;color:#e89377}
+  .act.primary{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#1c160e;border-color:var(--accent2);font-weight:600}
+  .act svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+  .pat{padding:9px 13px;border-radius:9px;border:1px solid var(--line2);background:linear-gradient(180deg,#2f261e,#241d17);font-size:12.5px;letter-spacing:.04em;transition:.15s}
+  .pat:hover{border-color:var(--accent);color:var(--accent2)}
+
+  #toast{
+    position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px);
+    background:rgba(20,16,11,.94); color:var(--accent2); border:1px solid var(--line2);
+    padding:10px 18px; border-radius:10px; font-size:13px; letter-spacing:.03em;
+    opacity:0; pointer-events:none; transition:.3s; box-shadow:var(--shadow); z-index:50;
+  }
+  #toast.show{opacity:1; transform:translate(-50%,0)}
+
+  @media (max-width:560px){
+    .tool{width:56px;height:52px}
+    input[type=range]{width:130px}
+    .brand p{display:none}
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="seal">۞</div>
+      <div>
+        <h1>EBRU</h1>
+        <p>su üstünde marbling atölyesi</p>
+      </div>
+    </div>
+    <div class="tip">Boyayı suya damlat, her damla bir öncekini halka halka iter. Biz ve tarakla deseni aç.</div>
+  </header>
+
+  <main>
+    <div class="tray-frame">
+      <div id="stage">
+        <canvas id="tray"></canvas>
+        <div id="hint">Suya dokun, boya damlasın…
+          <span>Damla · Serpme · Biz · Tarak araçlarını dene</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="dock">
+    <div class="group">
+      <h3>Araç</h3>
+      <div class="row" id="tools">
+        <button class="tool active" data-tool="drop" title="Damla bırak (1)">
+          <svg viewBox="0 0 24 24"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg>Damla</button>
+        <button class="tool" data-tool="spatter" title="Serpme: fırça savur (2)">
+          <svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="1.6"/><circle cx="13" cy="6" r="1.1"/><circle cx="17" cy="10" r="1.8"/><circle cx="10" cy="13" r="1.3"/><circle cx="15" cy="16" r="1.1"/><circle cx="6" cy="16" r="1"/></svg>Serpme</button>
+        <button class="tool" data-tool="needle" title="Biz: boyayı çek (3)">
+          <svg viewBox="0 0 24 24"><path d="M4 20L18 6"/><path d="M15 4l5 5-2.5.6L14.4 6.5z"/><circle cx="4" cy="20" r="1.1" fill="currentColor"/></svg>Biz</button>
+        <button class="tool" data-tool="comb" title="Tarak: desen tara (4)">
+          <svg viewBox="0 0 24 24"><path d="M3 7h18"/><path d="M6 7v11M10 7v11M14 7v11M18 7v11"/></svg>Tarak</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>Renk</h3>
+      <div class="row" id="colors"></div>
+    </div>
+
+    <div class="group">
+      <h3>Ayar</h3>
+      <div class="slider"><label>Damla boyutu <b id="sizeVal">34</b></label>
+        <input type="range" id="sizeRange" min="8" max="90" value="34"></div>
+      <div class="slider"><label>Tarak sıklığı <b id="combVal">26</b></label>
+        <input type="range" id="combRange" min="10" max="70" value="26"></div>
+      <div class="slider"><label>Serpme yoğunluğu <b id="spatVal">16</b></label>
+        <input type="range" id="spatRange" min="4" max="40" value="16"></div>
+    </div>
+
+    <div class="group">
+      <h3>Desen</h3>
+      <div class="row">
+        <button class="pat" id="patGelgit">Gel-git</button>
+        <button class="pat" id="patSal">Şal</button>
+        <button class="pat" id="patTarama">Taraklı</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>İşlem</h3>
+      <div class="row">
+        <button class="act" id="undoBtn"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H8"/></svg>Geri Al</button>
+        <button class="act warn" id="clearBtn"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>Temizle</button>
+        <button class="act primary" id="saveBtn"><svg viewBox="0 0 24 24"><path d="M5 20h14M12 4v10m0 0l-4-4m4 4l4-4"/></svg>İndir</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+const PALETTE = [
+  {name:"Lacivert",  r:26, g:43, b:104},
+  {name:"Çini Mavi", r:42, g:125,b:155},
+  {name:"Zümrüt",    r:39, g:104,b:79 },
+  {name:"Nar Kırmızı",r:172,g:55, b:43 },
+  {name:"Gülkurusu", r:156,g:72, b:66 },
+  {name:"Kiremit",   r:192,g:99, b:58 },
+  {name:"Hardal",    r:214,g:165,b:52 },
+  {name:"Patlıcan",  r:94, g:59, b:110},
+  {name:"İs Siyahı", r:28, g:23, b:20 },
+  {name:"Üstübeç",   r:244,g:239,b:226},
+];
+
+const cvs = document.getElementById('tray');
+const ctx = cvs.getContext('2d', {alpha:false});
+const NEEDLE_R = 72;
+const COMB_W   = 92;
+
+let W=0, H=0, DPR=1;
+let drops = [];                 // {r,g,b,css, pts:Float64Array}
+let undoStack = [];
+const MAX_UNDO = 30;
+
+const state = {
+  tool:'drop',
+  color:{r:26,g:43,b:104,css:'rgb(26,43,104)'},
+  dropSize:34,
+  combSpacing:26,
+  spatter:16,
+};
+
+/* texture & background */
+const noiseTile = makeNoiseTile(200, 0.05);
+let noisePattern=null, bgGrad=null;
+
+function makeNoiseTile(size, contrast){
+  const c=document.createElement('canvas'); c.width=c.height=size;
+  const x=c.getContext('2d'); const img=x.createImageData(size,size); const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const v=128+(Math.random()*2-1)*contrast*255;
+    d[i]=d[i+1]=d[i+2]=v; d[i+3]=255;
+  }
+  x.putImageData(img,0,0); return c;
+}
+function buildBg(){
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#efe8d8'); g.addColorStop(.5,'#e8dfcb'); g.addColorStop(1,'#ded2ba');
+  bgGrad=g;
+}
+
+/* geometry */
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+
+function makeCircle(cx,cy,r){
+  const n = clamp(Math.round(r*2.5)+16, 40, 220);
+  const a=new Float64Array(n*2);
+  for(let i=0;i<n;i++){const t=i/n*6.283185307; a[i*2]=cx+Math.cos(t)*r; a[i*2+1]=cy+Math.sin(t)*r;}
+  return a;
+}
+
+// her yeni damla mevcut tum boyayi merkezinden disari iter (gercek ebru fizigi)
+function displaceForDrop(cx,cy,r){
+  const rr=r*r;
+  for(const d of drops){
+    const p=d.pts;
+    for(let i=0;i<p.length;i+=2){
+      const dx=p[i]-cx, dy=p[i+1]-cy;
+      const dist2=dx*dx+dy*dy;
+      if(dist2<1e-7){ p[i]=cx+r; continue; }
+      const scale=Math.sqrt((dist2+rr)/dist2);
+      p[i]=cx+dx*scale; p[i+1]=cy+dy*scale;
+    }
+  }
+}
+
+function placeDrop(cx,cy,r,col){
+  displaceForDrop(cx,cy,r);
+  drops.push({r:col.r,g:col.g,b:col.b,css:col.css,pts:makeCircle(cx,cy,r)});
+}
+
+/* damla acilma animasyonu */
+let animId=null, animList=null, animStart=0, animDur=0;
+
+function runAnim(changes,dur){
+  if(animId) finishAnim();
+  animList=changes; animDur=dur; animStart=performance.now();
+  animId=requestAnimationFrame(animTick);
+}
+function animTick(now){
+  let t=(now-animStart)/animDur; if(t>1)t=1;
+  const e=1-Math.pow(1-t,3);
+  for(const c of animList){
+    const p=c.pts,f=c.from,to=c.to;
+    for(let i=0;i<p.length;i++) p[i]=f[i]+(to[i]-f[i])*e;
+  }
+  render();
+  if(t<1) animId=requestAnimationFrame(animTick);
+  else {animId=null; animList=null;}
+}
+function finishAnim(){
+  if(!animId)return;
+  cancelAnimationFrame(animId);
+  for(const c of animList) c.pts.set(c.to);
+  animId=null; animList=null;
+}
+
+function dropAnimated(cx,cy,r,col){
+  pushUndo();
+  const froms = drops.map(d=>d.pts.slice());
+  displaceForDrop(cx,cy,r);
+  const circle = makeCircle(cx,cy,r);
+  drops.push({r:col.r,g:col.g,b:col.b,css:col.css,pts:circle});
+
+  const changes=[];
+  for(let k=0;k<froms.length;k++) changes.push({pts:drops[k].pts, from:froms[k], to:drops[k].pts.slice()});
+  const center=new Float64Array(circle.length);
+  for(let i=0;i<circle.length;i+=2){center[i]=cx; center[i+1]=cy;}
+  changes.push({pts:circle, from:center, to:circle.slice()});
+  runAnim(changes, 280);
+}
+
+/* biz (needle) ve tarak (comb) */
+function needlePull(x,y,px,py){
+  const dx=x-px, dy=y-py;
+  if(dx*dx+dy*dy<0.01) return;
+  const R=NEEDLE_R, R2=R*R;
+  for(const d of drops){
+    const p=d.pts;
+    for(let i=0;i<p.length;i+=2){
+      const ex=p[i]-x, ey=p[i+1]-y, dd=ex*ex+ey*ey;
+      if(dd<R2){
+        const f=1-Math.sqrt(dd)/R;
+        const s=f*f*(3-2*f);
+        p[i]+=dx*s; p[i+1]+=dy*s;
+      }
+    }
+  }
+}
+
+function combStroke(x,y,px,py,range,spacing){
+  range=range||COMB_W; spacing=spacing||state.combSpacing;
+  const dx=x-px, dy=y-py;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  if(len<0.01) return;
+  const ux=dx/len, uy=dy/len;     // hareket yonu
+  const vx=-uy, vy=ux;            // tarak ekseni
+  const k=6.283185307/spacing;
+  for(const d of drops){
+    const p=d.pts;
+    for(let i=0;i<p.length;i+=2){
+      const rx=p[i]-x, ry=p[i+1]-y;
+      const along=Math.abs(rx*ux+ry*uy);
+      if(along<range){
+        const lat=rx*vx+ry*vy;
+        const tooth=0.3+0.7*(0.5+0.5*Math.cos(lat*k));
+        const front=1-along/range; const ff=front*front*(3-2*front);
+        const m=ff*tooth;
+        p[i]+=dx*m; p[i+1]+=dy*m;
+      }
+    }
+  }
+}
+
+/* otomatik desenler */
+function gelGit(){
+  if(!drops.length){toast("Önce biraz boya damlat");return;}
+  pushUndo();
+  const cols=11, step=W/cols;
+  for(let c=0;c<=cols;c++){
+    const x=c*step, down=c%2===0;
+    const y0=down?0:H, y1=down?H:0, seg=26;
+    let py=y0;
+    for(let i=1;i<=seg;i++){ const yy=y0+(y1-y0)*i/seg; combStroke(x,yy,x,py,step*1.05,1e6); py=yy; }
+  }
+  render(); toast("Gel-git uygulandı");
+}
+function tarama(){
+  if(!drops.length){toast("Önce biraz boya damlat");return;}
+  pushUndo();
+  const rows=10, step=H/rows;
+  for(let r2=0;r2<=rows;r2++){
+    const y=r2*step, right=r2%2===0;
+    const x0=right?0:W, x1=right?W:0, seg=30;
+    let px=x0;
+    for(let i=1;i<=seg;i++){ const xx=x0+(x1-x0)*i/seg; combStroke(xx,y,px,y,step*1.05,1e6); px=xx; }
+  }
+  render(); toast("Taraklı desen uygulandı");
+}
+function sal(){
+  if(!drops.length){toast("Önce biraz boya damlat");return;}
+  pushUndo();
+  const cols=10, step=W/cols;
+  for(let c=0;c<=cols;c++){
+    const x=c*step, down=c%2===0; const y0=down?0:H, y1=down?H:0, seg=24; let py=y0;
+    for(let i=1;i<=seg;i++){ const yy=y0+(y1-y0)*i/seg; combStroke(x,yy,x,py,step*1.05,1e6); py=yy; }
+  }
+  const rows=7, rstep=H/rows;
+  for(let r2=0;r2<=rows;r2++){
+    const y=r2*rstep, right=r2%2===0; const x0=right?0:W, x1=right?W:0, seg=44; let px=x0,py=y;
+    for(let i=1;i<=seg;i++){
+      const xx=x0+(x1-x0)*i/seg, yy=y+Math.sin(xx/W*12.566)*rstep*0.3;
+      combStroke(xx,yy,px,py,rstep*1.0,1e6); px=xx; py=yy;
+    }
+  }
+  render(); toast("Şal deseni uygulandı");
+}
+
+/* serpme */
+function spatterAt(x,y){
+  const n=Math.round(state.spatter*0.5)+3;
+  for(let i=0;i<n;i++){
+    const a=Math.random()*6.283, rad=Math.random()*Math.random()*30;
+    const sz=2+Math.random()*Math.random()*7;
+    placeDrop(x+Math.cos(a)*rad, y+Math.sin(a)*rad, sz, state.color);
+  }
+  scheduleRender();
+}
+function spatterAlong(x0,y0,x1,y1){
+  const n=Math.round(state.spatter*0.3)+1;
+  for(let i=0;i<n;i++){
+    const t=Math.random(), jx=(Math.random()-0.5)*24, jy=(Math.random()-0.5)*24;
+    const sz=2+Math.random()*Math.random()*7;
+    placeDrop(x0+(x1-x0)*t+jx, y0+(y1-y0)*t+jy, sz, state.color);
+  }
+  scheduleRender();
+}
+
+/* render */
+let renderQueued=false;
+function scheduleRender(){
+  if(renderQueued)return; renderQueued=true;
+  requestAnimationFrame(()=>{renderQueued=false; render();});
+}
+function render(){
+  if(!noisePattern) noisePattern=ctx.createPattern(noiseTile,'repeat');
+  ctx.fillStyle=bgGrad; ctx.fillRect(0,0,W,H);
+
+  ctx.globalCompositeOperation='overlay'; ctx.globalAlpha=.5;
+  ctx.fillStyle=noisePattern; ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+
+  for(const d of drops){
+    const p=d.pts; if(p.length<6) continue;
+    ctx.beginPath(); ctx.moveTo(p[0],p[1]);
+    for(let i=2;i<p.length;i+=2) ctx.lineTo(p[i],p[i+1]);
+    ctx.closePath();
+    ctx.fillStyle=d.css; ctx.fill();
+    ctx.lineWidth=0.7; ctx.strokeStyle='rgba(22,16,10,0.10)'; ctx.stroke();
+  }
+
+  const vg=ctx.createRadialGradient(W/2,H*0.42,Math.min(W,H)*0.2, W/2,H/2,Math.max(W,H)*0.72);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(34,24,14,0.20)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+}
+
+/* undo */
+function pushUndo(){
+  finishAnim();
+  undoStack.push(drops.map(d=>({r:d.r,g:d.g,b:d.b,css:d.css,pts:d.pts.slice()})));
+  if(undoStack.length>MAX_UNDO) undoStack.shift();
+}
+function undo(){
+  finishAnim();
+  const s=undoStack.pop();
+  if(!s){toast("Geri alınacak adım yok");return;}
+  drops=s; render();
+}
+
+/* pointer */
+let drawing=false, lastX=0, lastY=0, spatAcc=0;
+function pos(e){
+  const r=cvs.getBoundingClientRect();
+  return [ (e.clientX-r.left)*(W/r.width), (e.clientY-r.top)*(H/r.height) ];
+}
+function jitter(s){ return s*(0.85+Math.random()*0.3); }
+
+cvs.addEventListener('pointerdown', e=>{
+  e.preventDefault(); cvs.setPointerCapture(e.pointerId);
+  finishAnim(); hideHint();
+  const [x,y]=pos(e); drawing=true; lastX=x; lastY=y; spatAcc=0;
+  if(state.tool==='drop') dropAnimated(x,y,jitter(state.dropSize),state.color);
+  else if(state.tool==='spatter'){ pushUndo(); spatterAt(x,y); }
+  else if(state.tool==='needle'||state.tool==='comb'){ pushUndo(); }
+});
+cvs.addEventListener('pointermove', e=>{
+  if(!drawing)return;
+  const [x,y]=pos(e);
+  if(state.tool==='needle'){ needlePull(x,y,lastX,lastY); scheduleRender(); }
+  else if(state.tool==='comb'){ combStroke(x,y,lastX,lastY); scheduleRender(); }
+  else if(state.tool==='spatter'){
+    spatAcc+=Math.hypot(x-lastX,y-lastY);
+    if(spatAcc>7){ spatterAlong(lastX,lastY,x,y); spatAcc=0; }
+  }
+  lastX=x; lastY=y;
+});
+function endStroke(){ drawing=false; }
+cvs.addEventListener('pointerup', endStroke);
+cvs.addEventListener('pointercancel', endStroke);
+cvs.addEventListener('contextmenu', e=>e.preventDefault());
+
+/* UI */
+function hideHint(){ const h=document.getElementById('hint'); if(h) h.classList.add('gone'); }
+
+const toolsWrap=document.getElementById('tools');
+toolsWrap.querySelectorAll('.tool').forEach(b=>{
+  b.addEventListener('click',()=>selectTool(b.dataset.tool));
+});
+function selectTool(t){
+  state.tool=t;
+  toolsWrap.querySelectorAll('.tool').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
+  cvs.style.cursor = (t==='needle'||t==='comb') ? 'grab' : 'crosshair';
+}
+
+const colorsWrap=document.getElementById('colors');
+PALETTE.forEach((c,idx)=>{
+  const b=document.createElement('button');
+  b.className='swatch'+(idx===0?' active':'');
+  b.style.background='rgb('+c.r+','+c.g+','+c.b+')';
+  b.title=c.name;
+  b.addEventListener('click',()=>{
+    state.color={r:c.r,g:c.g,b:c.b,css:'rgb('+c.r+','+c.g+','+c.b+')'};
+    colorsWrap.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+    b.classList.add('active');
+  });
+  colorsWrap.appendChild(b);
+});
+const custom=document.createElement('label');
+custom.className='swatch custom'; custom.title='Özel renk';
+custom.innerHTML='+<input type="color" value="#7a3fb0">';
+const colorInput=custom.querySelector('input');
+colorInput.addEventListener('input',()=>{
+  const h=colorInput.value;
+  const r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16);
+  state.color={r,g,b,css:'rgb('+r+','+g+','+b+')'};
+  colorsWrap.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  custom.classList.add('active');
+});
+colorsWrap.appendChild(custom);
+
+function bindSlider(id,valId,key){
+  const s=document.getElementById(id), v=document.getElementById(valId);
+  s.addEventListener('input',()=>{ state[key]=+s.value; v.textContent=s.value; });
+}
+bindSlider('sizeRange','sizeVal','dropSize');
+bindSlider('combRange','combVal','combSpacing');
+bindSlider('spatRange','spatVal','spatter');
+
+document.getElementById('patGelgit').addEventListener('click',gelGit);
+document.getElementById('patSal').addEventListener('click',sal);
+document.getElementById('patTarama').addEventListener('click',tarama);
+document.getElementById('undoBtn').addEventListener('click',undo);
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  if(!drops.length)return;
+  pushUndo(); drops=[]; render(); toast("Tekne temizlendi");
+});
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  finishAnim(); render();
+  const a=document.createElement('a');
+  a.download='ebru.png'; a.href=cvs.toDataURL('image/png'); a.click();
+  toast("Ebru indiriliyor");
+});
+
+addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); return; }
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='1')selectTool('drop');
+  else if(e.key==='2')selectTool('spatter');
+  else if(e.key==='3')selectTool('needle');
+  else if(e.key==='4')selectTool('comb');
+});
+
+let toastT;
+function toast(m){
+  const t=document.getElementById('toast');
+  t.textContent=m; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+/* layout */
+let resizeT;
+function layout(){
+  const rect=document.getElementById('stage').getBoundingClientRect();
+  const nW=Math.max(1,rect.width), nH=Math.max(1,rect.height);
+  if(W && drops.length && (nW!==W||nH!==H)){
+    const sx=nW/W, sy=nH/H;
+    for(const d of drops){const p=d.pts;for(let i=0;i<p.length;i+=2){p[i]*=sx;p[i+1]*=sy;}}
+  }
+  W=nW; H=nH; DPR=Math.min(window.devicePixelRatio||1,2);
+  cvs.width=Math.round(W*DPR); cvs.height=Math.round(H*DPR);
+  cvs.style.width=W+'px'; cvs.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  buildBg(); render();
+}
+window.addEventListener('resize',()=>{ clearTimeout(resizeT); resizeT=setTimeout(layout,150); });
+layout();
+})();
+</script>
+</body>
+</html>

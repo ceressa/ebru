@@ -1,0 +1,4 @@
+server.js
+.claude/
+*.local
+node_modules/
