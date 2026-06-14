@@ -62,6 +62,24 @@
   .presets button{padding:8px 13px;border-radius:9px;border:1px solid var(--line);
     background:rgba(255,255,255,.55);color:var(--ink);font-family:inherit;font-size:13px;cursor:pointer}
   .presets button:hover{background:#fff}
+  .presets{bottom:124px}
+
+  .dock{position:fixed;left:0;right:0;bottom:16px;z-index:10;display:flex;flex-wrap:wrap;
+    gap:10px;justify-content:center;align-items:flex-end;padding:0 10px}
+  .grp{display:flex;flex-direction:column;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:7px 11px 9px;
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(40,32,18,.16)}
+  .lbl{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:rgba(90,78,58,.62)}
+  .seg{display:flex;gap:5px;align-items:center}
+  .t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    min-width:52px;height:46px;padding:5px 8px;border:1px solid var(--line);border-radius:11px;
+    background:rgba(255,255,255,.45);color:var(--ink);font-family:inherit;font-size:10px;letter-spacing:.01em;cursor:pointer;transition:.13s}
+  .t svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .t:hover{background:#fff;border-color:rgba(70,60,46,.34);transform:translateY(-1px)}
+  .t.active{background:var(--ink);color:var(--paper);border-color:var(--ink);box-shadow:0 4px 12px rgba(40,30,18,.3)}
+  .dock .palette{display:flex;gap:8px;align-items:center;height:46px}
+  .dock .dot{width:27px;height:27px}
+  @media (max-width:560px){ .t{min-width:46px;height:42px;font-size:9px} .dock .dot{width:24px;height:24px} }
 </style>
 </head>
 <body>
@@ -70,18 +88,51 @@
   <div class="brand"><b>EBRU</b><span>su üstünde mürekkep</span></div>
   <div class="hint" id="hint">Damla ile renk bırak　·　Biz / Tarak ile boyayı yay</div>
 
-  <div class="bar">
-    <button class="mode" id="modeBtn" title="Araç: Damla / Biz / Tarak / Çiçek">Damla</button>
-    <span class="sep"></span>
-    <div class="palette" id="palette"></div>
-    <span class="sep"></span>
-    <button class="icon" id="autoBtn" title="Otomatik akış (kapalı; açılırsa boştayken kendi kendine damlatır)">✦</button>
-    <button class="icon" id="symBtn" title="Simetri: kapalı → 2 → 4 → 6 → 8 kat (çiçek/mandala)">❋</button>
-    <button class="icon" id="patBtn" title="Hazır desen">✿</button>
-    <button class="icon" id="clearBtn" title="Temizle">⟲</button>
-    <button class="icon" id="saveBtn" title="İndir (PNG)">⤓</button>
-    <button class="icon" id="soundBtn" title="Ortam sesi">♪</button>
+  <div class="dock">
+    <div class="grp">
+      <span class="lbl">Araç</span>
+      <div class="seg" id="tools">
+        <button class="t active" data-tool="drop" title="Damla: yüzeye renk bırakır">
+          <svg viewBox="0 0 24 24"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg><span>Damla</span></button>
+        <button class="t" data-tool="biz" title="Biz: boya eklemeden var olan boyayı yayar">
+          <svg viewBox="0 0 24 24"><path d="M4 20L17 7"/><path d="M14 4l6 6"/></svg><span>Biz</span></button>
+        <button class="t" data-tool="comb" title="Tarak: boyasız, tarayarak çizgi açar">
+          <svg viewBox="0 0 24 24"><path d="M3 8h18"/><path d="M6 8v9M10 8v9M14 8v9M18 8v9"/></svg><span>Tarak</span></button>
+        <button class="t" data-tool="flower" title="Çiçek: simetrik çiçek motifi">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="6.4" r="2.4"/><circle cx="12" cy="17.6" r="2.4"/><circle cx="6.4" cy="12" r="2.4"/><circle cx="17.6" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.1"/></svg><span>Çiçek</span></button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">Renk</span>
+      <div class="palette" id="palette"></div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">Düzen</span>
+      <div class="seg">
+        <button class="t" id="symBtn" title="Simetri: kapalı → 2 → 4 → 6 → 8 kat">
+          <svg viewBox="0 0 24 24"><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9"/></svg><span>Simetri</span></button>
+        <button class="t" id="autoBtn" title="Otomatik akış: boştayken kendi kendine damlatır">
+          <svg viewBox="0 0 24 24"><path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5z"/></svg><span>Otomatik</span></button>
+        <button class="t" id="patBtn" title="Hazır desenler">
+          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span>Hazır</span></button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <span class="lbl">Tuval</span>
+      <div class="seg">
+        <button class="t" id="clearBtn" title="Temizle">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg><span>Temizle</span></button>
+        <button class="t" id="saveBtn" title="PNG indir">
+          <svg viewBox="0 0 24 24"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14"/></svg><span>Kaydet</span></button>
+        <button class="t" id="soundBtn" title="Ortam sesi">
+          <svg viewBox="0 0 24 24"><path d="M9 17V6l9-2v11"/><circle cx="6.5" cy="17" r="2.5"/><circle cx="15.5" cy="15" r="2.5"/></svg><span>Ses</span></button>
+      </div>
+    </div>
   </div>
+
   <div class="presets" id="presets">
     <button data-p="gelgit">Gel-git</button>
     <button data-p="sal">Şal</button>
@@ -568,30 +619,34 @@ INKS.forEach((p,i)=>{
   b.addEventListener('click', ()=>{ current=p.c; pal.querySelectorAll('.dot').forEach(d=>d.classList.remove('active')); b.classList.add('active'); });
   pal.appendChild(b);
 });
-document.getElementById('autoBtn').addEventListener('click', function(){ autoFlow=!autoFlow; this.classList.toggle('on', autoFlow); });
+// simetri
 const SYMMETRIES=[1,2,4,6,8]; let symIdx=0;
-document.getElementById('symBtn').addEventListener('click', function(){
-  symIdx=(symIdx+1)%SYMMETRIES.length; symmetry=SYMMETRIES[symIdx];
-  this.classList.toggle('on', symmetry>1);
-  this.textContent = symmetry>1 ? String(symmetry) : '❋';
-});
+const symBtn=document.getElementById('symBtn'), symLbl=symBtn.querySelector('span');
+function updateSym(){ symBtn.classList.toggle('active', symmetry>1); symLbl.textContent = symmetry>1 ? ('Simetri '+symmetry) : 'Simetri'; }
+symBtn.addEventListener('click', ()=>{ symIdx=(symIdx+1)%SYMMETRIES.length; symmetry=SYMMETRIES[symIdx]; updateSym(); });
+updateSym();
 
-const MODES=[['drop','Damla'],['biz','Biz'],['comb','Tarak'],['flower','Çiçek']]; let modeIdx=0;
-document.getElementById('modeBtn').addEventListener('click', function(){
-  modeIdx=(modeIdx+1)%MODES.length; tool=MODES[modeIdx][0]; this.textContent=MODES[modeIdx][1];
-  if(tool==='flower' && symmetry===1){   // cicek simetriyle guzel: otomatik 6 kat
-    symmetry=6; symIdx=SYMMETRIES.indexOf(6);
-    const sb=document.getElementById('symBtn'); sb.classList.add('on'); sb.textContent='6';
-  }
-});
+// arac secimi
+const toolsEl=document.getElementById('tools');
+function selectTool(t){
+  tool=t;
+  toolsEl.querySelectorAll('.t').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
+  if(t==='flower' && symmetry===1){ symmetry=6; symIdx=SYMMETRIES.indexOf(6); updateSym(); }
+}
+toolsEl.querySelectorAll('.t').forEach(b=>b.addEventListener('click', ()=>selectTool(b.dataset.tool)));
+
+// otomatik
+document.getElementById('autoBtn').addEventListener('click', function(){ autoFlow=!autoFlow; this.classList.toggle('active', autoFlow); });
+
+// hazir desenler
 const presetsEl=document.getElementById('presets');
-document.getElementById('patBtn').addEventListener('click', function(e){ e.stopPropagation(); presetsEl.classList.toggle('show'); });
+document.getElementById('patBtn').addEventListener('click', e=>{ e.stopPropagation(); presetsEl.classList.toggle('show'); });
 presetsEl.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
   presetsEl.classList.remove('show'); hideHint();
   const p=b.dataset.p;
   if(p==='gelgit') presetGelGit(); else if(p==='sal') presetSal(); else presetBulbul();
 }));
-window.addEventListener('pointerdown', e=>{ if(!presetsEl.contains(e.target) && e.target.id!=='patBtn') presetsEl.classList.remove('show'); }, true);
+window.addEventListener('pointerdown', e=>{ if(!presetsEl.contains(e.target) && !e.target.closest('#patBtn')) presetsEl.classList.remove('show'); }, true);
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   render();
