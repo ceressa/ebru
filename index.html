@@ -68,14 +68,14 @@
   <canvas id="c"></canvas>
   <div class="tray"></div>
   <div class="brand"><b>EBRU</b><span>su üstünde mürekkep</span></div>
-  <div class="hint" id="hint">dokun: mürekkep damlat　·　sürükle: suyu karıştır</div>
+  <div class="hint" id="hint">Damla ile renk bırak　·　Biz / Tarak ile boyayı yay</div>
 
   <div class="bar">
-    <button class="mode" id="modeBtn" title="Araç: Karıştır / Tarak / Çiçek">Karıştır</button>
+    <button class="mode" id="modeBtn" title="Araç: Damla / Biz / Tarak / Çiçek">Damla</button>
     <span class="sep"></span>
     <div class="palette" id="palette"></div>
     <span class="sep"></span>
-    <button class="icon on" id="autoBtn" title="Otomatik akış (boştayken kendi kendine)">✦</button>
+    <button class="icon" id="autoBtn" title="Otomatik akış (kapalı; açılırsa boştayken kendi kendine damlatır)">✦</button>
     <button class="icon" id="symBtn" title="Simetri: kapalı → 2 → 4 → 6 → 8 kat (çiçek/mandala)">❋</button>
     <button class="icon" id="patBtn" title="Hazır desen">✿</button>
     <button class="icon" id="clearBtn" title="Temizle">⟲</button>
@@ -132,7 +132,7 @@ const INKS = [
 let current = INKS[0].c;
 let autoIdx = 0;
 let symmetry = 1;   // 1=yok, 2/4/6/8 = ayna/cicek simetrisi
-let tool = 'stir';  // stir | comb | flower
+let tool = 'drop';  // drop | biz | comb | flower
 let scriptFn = null, scriptMs = 0;
 
 // gorunur renk -> sogurma vektoru (paper * exp(-A) o renge yaklasir)
@@ -501,7 +501,7 @@ function presetBulbul(){ clearAll(); battalGround(); dropInk(0.5,0.5,current,1.2
   runScript((now,dt)=>{ ph+=dt; for(let i=0;i<12;i++){ const a=i*Math.PI/6+ph*2.2, r=0.05+0.18*((ph*0.35)%1); splatVelocity(0.5+Math.cos(a)*r, 0.5+Math.sin(a)*r, -Math.sin(a)*72, Math.cos(a)*72, 1.0); } }, 2600); }
 
 /* ---------------- otomatik akis ---------------- */
-let autoFlow=true, nextDrop=1100, nextStir=2400, lastInteraction=-99999;
+let autoFlow=false, nextDrop=1100, nextStir=2400, lastInteraction=-99999;
 function clamp(v,a,b){ return v<a?a:v>b?b:v; }
 function autoUpdate(now,dt){
   if(!autoFlow) return;
@@ -535,21 +535,22 @@ function frame(t){
 }
 
 /* ---------------- pointer ---------------- */
-const pointer={down:false, lx:0, ly:0};
+const pointer={down:false, lx:0, ly:0, acc:0};
 function uvOf(e){ const r=canvas.getBoundingClientRect(); return [ (e.clientX-r.left)/r.width, 1-(e.clientY-r.top)/r.height ]; }
 canvas.addEventListener('pointerdown', e=>{
   canvas.setPointerCapture(e.pointerId);
-  const [u,v]=uvOf(e); pointer.down=true; pointer.lx=u; pointer.ly=v;
+  const [u,v]=uvOf(e); pointer.down=true; pointer.lx=u; pointer.ly=v; pointer.acc=0;
   scriptFn=null; lastInteraction=performance.now(); hideHint();
-  if(tool==='flower') makeFlower(u, v, current);
-  else dropMarble(u, v, current, 0.045+Math.random()*0.022);
-  if(audioOn) playBell();
+  if(tool==='drop'){ dropMarble(u, v, current, 0.045+Math.random()*0.022); if(audioOn) playBell(); }
+  else if(tool==='flower'){ makeFlower(u, v, current); if(audioOn) playBell(); }
+  // biz / tarak: boya EKLEMEZ, sadece var olan boyayi yayar
 });
 canvas.addEventListener('pointermove', e=>{
   if(!pointer.down) return;
   const [u,v]=uvOf(e);
   if(tool==='comb') combStroke(u, v, pointer.lx, pointer.ly);
-  else splatVelocity(u, v, (u-pointer.lx)*config.SPLAT_FORCE, (v-pointer.ly)*config.SPLAT_FORCE, 1.0);
+  else if(tool==='biz' || tool==='flower') splatVelocity(u, v, (u-pointer.lx)*config.SPLAT_FORCE, (v-pointer.ly)*config.SPLAT_FORCE, 1.0);
+  else if(tool==='drop'){ pointer.acc += Math.hypot(u-pointer.lx, v-pointer.ly); if(pointer.acc>0.055){ dropMarble(u, v, current, 0.04+Math.random()*0.02); pointer.acc=0; } }
   pointer.lx=u; pointer.ly=v; lastInteraction=performance.now();
 });
 canvas.addEventListener('pointerup', ()=>{ pointer.down=false; });
@@ -575,7 +576,7 @@ document.getElementById('symBtn').addEventListener('click', function(){
   this.textContent = symmetry>1 ? String(symmetry) : '❋';
 });
 
-const MODES=[['stir','Karıştır'],['comb','Tarak'],['flower','Çiçek']]; let modeIdx=0;
+const MODES=[['drop','Damla'],['biz','Biz'],['comb','Tarak'],['flower','Çiçek']]; let modeIdx=0;
 document.getElementById('modeBtn').addEventListener('click', function(){
   modeIdx=(modeIdx+1)%MODES.length; tool=MODES[modeIdx][0]; this.textContent=MODES[modeIdx][1];
   if(tool==='flower' && symmetry===1){   // cicek simetriyle guzel: otomatik 6 kat
