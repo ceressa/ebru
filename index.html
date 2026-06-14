@@ -173,7 +173,7 @@
 
   <div class="menu" id="moreMenu">
     <div class="mrow"><span class="mlbl">Fırça boyutu</span><input type="range" id="sizeR" class="rng" min="14" max="95" value="45"></div>
-    <div class="mrow"><span class="mlbl">Kıvam (direnç)</span><input type="range" id="viscR" class="rng" min="6" max="60" value="30"></div>
+    <div class="mrow"><span class="mlbl">Sivrilik</span><input type="range" id="viscR" class="rng" min="4" max="22" value="10"></div>
     <div class="mrow"><span class="mlbl">Simetri</span>
       <div class="chips" id="symChips">
         <button class="chip on" data-s="1">Kapalı</button><button class="chip" data-s="2">2</button><button class="chip" data-s="4">4</button><button class="chip" data-s="6">6</button><button class="chip" data-s="8">8</button>
@@ -227,8 +227,8 @@ const config = {
   DROP_STR: 0.62,          // murekkep koyulugu (yumusak damla)
   DROP_PUSH: 1.0,          // damlanin disari itmesi
   DROP_DENSITY: 1.45,      // ebru damlasinin (net daire) koyulugu
-  NEEDLE_RAD: 0.055,       // igne etki yaricapi
-  NEEDLE_SHARP: 9.0,       // igne ucu sivriligi (yuksek = daha sivri/lokal)
+  NEEDLE_RAD: 0.045,       // igne etki yaricapi (ince)
+  NEEDLE_SHARP: 10.0,      // igne ucu sivriligi (yuksek = daha sivri/lokal)
   COMB_TEETH: 120.0,       // tarak dis sikligi
   DROP_SIZE: 0.045,        // damla yaricapi (ayarlanabilir)
   BIZ_RAD: 0.4,            // biz ucu inceligi (kucuk = daha sivri)
@@ -651,17 +651,29 @@ function makeFlower(x,y,color){
   lastInteraction=performance.now();
 }
 function battalGround(){
-  for(let i=0;i<46;i++){ const x=0.06+Math.random()*0.88, y=0.08+Math.random()*0.84; dropMarble(x,y, INKS[(Math.random()*INKS.length)|0].c, 0.018+Math.random()*0.03); }
+  for(let i=0;i<85;i++){ const x=0.03+Math.random()*0.94, y=0.04+Math.random()*0.92; dropMarble(x,y, INKS[(Math.random()*INKS.length)|0].c, 0.03+Math.random()*0.045); }
 }
 
 /* ---------------- hazir desenler ---------------- */
 function runScript(fn,ms){ scriptFn=fn; scriptMs=ms; lastInteraction=performance.now()+ms; }
-function presetGelGit(){ clearAll(); battalGround(); let ph=0;
-  runScript((now,dt)=>{ ph+=dt; const y=0.5+0.45*Math.sin(ph*2.2); const dir=Math.cos(ph*2.2)>=0?1:-1; combAt(0.5,y, 1,0, 0,dir*72); }, 2600); }
-function presetSal(){ presetGelGit();
-  setTimeout(()=>{ let ph=0; runScript((now,dt)=>{ ph+=dt; const x=0.5+0.45*Math.sin(ph*2.2); const dir=Math.cos(ph*2.2)>=0?1:-1; combAt(x,0.5, 0,1, dir*72,0); }, 2200); }, 2750); }
-function presetBulbul(){ clearAll(); battalGround(); dropInk(0.5,0.5,current,1.2); let ph=0;
-  runScript((now,dt)=>{ ph+=dt; for(let i=0;i<12;i++){ const a=i*Math.PI/6+ph*2.2, r=0.05+0.18*((ph*0.35)%1); splatVelocity(0.5+Math.cos(a)*r, 0.5+Math.sin(a)*r, -Math.sin(a)*72, Math.cos(a)*72, 1.0); } }, 2600); }
+// hepsi DOGRUDAN warp: desen yerini korur, dagilmaz
+function presetGelGit(){
+  clearAll(); battalGround();
+  let py=0.04; for(let k=0;k<=26;k++){ const y=0.04+k*0.036; combWarp(0.5,y,0.5,py); py=y; }   // dikey tarama
+  render();
+}
+function presetSal(){
+  presetGelGit();
+  let px=0.04; for(let k=0;k<=26;k++){ const x=0.04+k*0.036; combWarp(x,0.5,px,0.5); px=x; }   // capraz tarama
+  render();
+}
+function presetBulbul(){
+  clearAll(); battalGround();
+  let px=0.5, py=0.5;
+  for(let k=1;k<=90;k++){ const a=k*0.42, r=0.012+k*0.0038, x=0.5+Math.cos(a)*r, y=0.5+Math.sin(a)*r;
+    needleWarp(x, y, x-px, y-py); px=x; py=y; }   // spiral
+  render();
+}
 
 /* ---------------- otomatik akis ---------------- */
 let autoFlow=false, nextDrop=1100, nextStir=2400, lastInteraction=-99999, lastFlow=-99999;
@@ -711,8 +723,8 @@ canvas.addEventListener('pointerdown', e=>{
 canvas.addEventListener('pointermove', e=>{
   if(!pointer.down) return;
   const [u,v]=uvOf(e);
-  if(tool==='comb') combStroke(u, v, pointer.lx, pointer.ly);
-  else if(tool==='biz' || tool==='flower') splatVelocity(u, v, (u-pointer.lx)*config.SPLAT_FORCE, (v-pointer.ly)*config.SPLAT_FORCE, config.BIZ_RAD);
+  if(tool==='comb') combWarp(u, v, pointer.lx, pointer.ly);
+  else if(tool==='biz' || tool==='flower') needleWarp(u, v, u-pointer.lx, v-pointer.ly);
   else if(tool==='drop'){ pointer.acc += Math.hypot(u-pointer.lx, v-pointer.ly); if(pointer.acc>config.DROP_SIZE*1.2){ dropMarble(u, v, current, config.DROP_SIZE*0.85); pointer.acc=0; } }
   pointer.lx=u; pointer.ly=v; lastInteraction=performance.now();
 });
@@ -759,7 +771,7 @@ document.getElementById('moreBtn').addEventListener('click', e=>{ e.stopPropagat
 window.addEventListener('pointerdown', e=>{ if(!moreMenu.contains(e.target) && !e.target.closest('#moreBtn')) closeMenu(); }, true);
 document.getElementById('autoTgl').addEventListener('click', function(){ autoFlow=!autoFlow; this.classList.toggle('on', autoFlow); this.textContent=autoFlow?'Açık':'Kapalı'; });
 document.getElementById('sizeR').addEventListener('input', e=>{ config.DROP_SIZE = (+e.target.value)/1000; });
-document.getElementById('viscR').addEventListener('input', e=>{ config.VEL_DISSIPATION = (+e.target.value)/10; });  // sag=daha dirençli
+document.getElementById('viscR').addEventListener('input', e=>{ config.NEEDLE_SHARP = +e.target.value; });  // sag=daha sivri
 document.querySelectorAll('.chip[data-p]').forEach(b=>b.addEventListener('click', ()=>{
   closeMenu(); hideHint();
   const p=b.dataset.p;
