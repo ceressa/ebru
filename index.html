@@ -107,14 +107,15 @@ const SIM_RES = 256;
 const DYE_RES = 1024;
 const PRESSURE_ITER = 28;
 const config = {
-  VEL_DISSIPATION: 0.6,    // jest bitince hareket durulur (sonsuza suruklenmez)
-  DYE_DISSIPATION: 0.004,  // murekkep neredeyse kalici
-  CURL: 16,                // girdap / damar
+  VEL_DISSIPATION: 0.82,   // daha kivamli/agir su; jest bitince cabuk durulur
+  DYE_DISSIPATION: 0.003,  // murekkep neredeyse kalici
+  CURL: 15,                // girdap / damar
   SPLAT_RADIUS: 0.0022,
   SPLAT_FORCE: 6200,
   DYE_FLOW: 1.0,           // dye akis hizi (1 = hiz alaniyla ayni)
-  DROP_STR: 0.62,          // murekkep koyulugu
+  DROP_STR: 0.62,          // murekkep koyulugu (yumusak damla)
   DROP_PUSH: 1.0,          // damlanin disari itmesi
+  DROP_DENSITY: 1.45,      // ebru damlasinin (net daire) koyulugu
 };
 
 function hexRGB(h){ return [parseInt(h.slice(1,3),16)/255, parseInt(h.slice(3,5),16)/255, parseInt(h.slice(5,7),16)/255]; }
@@ -172,6 +173,20 @@ uniform sampler2D uVelocity; uniform sampler2D uSource; uniform float dt; unifor
 void main(){
   vec2 coord = vUv - dt * texture(uVelocity, vUv).xy * uTexel;
   fragColor = texture(uSource, coord) / (1.0 + dissipation*dt);
+}`;
+
+// gercek ebru damlasi: net daire + mevcut boyayi disari iten esmerkezli yer degistirme
+const F_MARBLE = HEAD + `
+uniform sampler2D uDye; uniform float uAspect; uniform vec2 uPoint; uniform float uRadius; uniform vec3 uInk;
+void main(){
+  vec2 p = vUv - uPoint; p.x *= uAspect;
+  float d = length(p);
+  float dd = max(d*d - uRadius*uRadius, 0.0);
+  float src = sqrt(dd) / max(d, 1e-5);          // P_old = C + (P-C)*sqrt(1 - r^2/d^2)
+  vec2 sp = p*src; sp.x /= uAspect;
+  vec3 displaced = texture(uDye, uPoint+sp).rgb;
+  float disk = 1.0 - smoothstep(uRadius-0.0018, uRadius+0.0018, d);
+  fragColor = vec4(mix(displaced, uInk, disk), 1.0);  // ic = net renk (kapatir), dis = itilen boya
 }`;
 
 const F_CURL = HEAD + `
@@ -284,7 +299,7 @@ function Program(frag){
   return {program:p, u};
 }
 const prog = {
-  clear:Program(F_CLEAR), splat:Program(F_SPLAT), advect:Program(F_ADVECT),
+  clear:Program(F_CLEAR), splat:Program(F_SPLAT), advect:Program(F_ADVECT), marble:Program(F_MARBLE),
   curl:Program(F_CURL), vorticity:Program(F_VORTICITY), divergence:Program(F_DIVERGENCE),
   pressure:Program(F_PRESSURE), gradient:Program(F_GRADIENT), display:Program(F_DISPLAY),
 };
@@ -431,6 +446,17 @@ function dropInk(x,y,c,strength){
   const ang=Math.random()*6.283, sp=(60+Math.random()*80)*config.DROP_PUSH;
   splatVelocity(x, y, Math.cos(ang)*sp, Math.sin(ang)*sp, 1.2);
 }
+// gercek ebru damlasi: net daire + esmerkezli itme (hiz EKLEMEZ, yerinde durur)
+function dropMarble(x,y,c,radius){
+  const A=inkAbsorption(c, config.DROP_DENSITY);
+  gl.useProgram(prog.marble.program);
+  gl.uniform1i(prog.marble.u.uDye, dye.read.attach(0));
+  gl.uniform1f(prog.marble.u.uAspect, canvas.width/canvas.height);
+  gl.uniform2f(prog.marble.u.uPoint, x, y);
+  gl.uniform1f(prog.marble.u.uRadius, radius);
+  gl.uniform3f(prog.marble.u.uInk, A[0], A[1], A[2]);
+  blit(dye.write); dye.swap();
+}
 function clearAll(){
   for(const f of [dye, velocity, pressure]){
     gl.bindFramebuffer(gl.FRAMEBUFFER, f.read.fbo); gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -462,7 +488,7 @@ function makeFlower(x,y,color){
   lastInteraction=performance.now();
 }
 function battalGround(){
-  for(let i=0;i<34;i++){ const x=0.08+Math.random()*0.84, y=0.1+Math.random()*0.8; dropInk(x,y, INKS[(Math.random()*INKS.length)|0].c, 0.5+Math.random()*0.6); }
+  for(let i=0;i<46;i++){ const x=0.06+Math.random()*0.88, y=0.08+Math.random()*0.84; dropMarble(x,y, INKS[(Math.random()*INKS.length)|0].c, 0.018+Math.random()*0.03); }
 }
 
 /* ---------------- hazir desenler ---------------- */
@@ -482,16 +508,18 @@ function autoUpdate(now,dt){
   if(now-lastInteraction < 2500) return;
   nextDrop -= dt*1000;
   if(nextDrop<=0){
-    const x=0.24+Math.random()*0.52, y=0.28+Math.random()*0.44;
-    dropInk(x, y, INKS[(autoIdx++)%INKS.length].c, 0.9+Math.random()*0.4);
+    const x=0.22+Math.random()*0.56, y=0.26+Math.random()*0.48;
+    dropMarble(x, y, INKS[(autoIdx++)%INKS.length].c, 0.05+Math.random()*0.025);
     if(audioOn) playBell();
-    // kisa, nazik bir kavis: birkac teget itme, sonra durulur (sonsuza surukleme yok)
-    const dir = Math.random()<0.5?1:-1;
-    for(let i=0;i<5;i++){
-      const a=Math.random()*6.283, rr=0.12+Math.random()*0.16;
-      splatVelocity(0.5+Math.cos(a)*rr, 0.5+Math.sin(a)*rr, -Math.sin(a)*dir*52, Math.cos(a)*dir*52, 2.2);
+    // arada bir nazik kavis; sonra durulur
+    if(Math.random()<0.5){
+      const dir = Math.random()<0.5?1:-1;
+      for(let i=0;i<5;i++){
+        const a=Math.random()*6.283, rr=0.12+Math.random()*0.16;
+        splatVelocity(0.5+Math.cos(a)*rr, 0.5+Math.sin(a)*rr, -Math.sin(a)*dir*34, Math.cos(a)*dir*34, 2.2);
+      }
     }
-    nextDrop = 3800 + Math.random()*3800;
+    nextDrop = 3400 + Math.random()*3600;
   }
 }
 
@@ -514,7 +542,7 @@ canvas.addEventListener('pointerdown', e=>{
   const [u,v]=uvOf(e); pointer.down=true; pointer.lx=u; pointer.ly=v;
   scriptFn=null; lastInteraction=performance.now(); hideHint();
   if(tool==='flower') makeFlower(u, v, current);
-  else dropInk(u, v, current, 0.7+Math.random()*0.3);
+  else dropMarble(u, v, current, 0.045+Math.random()*0.022);
   if(audioOn) playBell();
 });
 canvas.addEventListener('pointermove', e=>{
@@ -615,11 +643,11 @@ if(window.ResizeObserver){ new ResizeObserver(()=>resize()).observe(canvas); }
 
 { const [w0,h0]=viewSize(); canvas.width=w0; canvas.height=h0; }
 initFBOs();
-dropInk(0.30,0.42, INKS[0].c, 1.0);
-dropInk(0.50,0.55, INKS[2].c, 1.0);
-dropInk(0.66,0.40, INKS[3].c, 0.9);
-dropInk(0.42,0.66, INKS[4].c, 0.9);
-dropInk(0.62,0.62, INKS[1].c, 0.9);
+dropMarble(0.42,0.46, INKS[0].c, 0.06);
+dropMarble(0.55,0.52, INKS[2].c, 0.06);
+dropMarble(0.50,0.49, INKS[3].c, 0.05);
+dropMarble(0.47,0.54, INKS[4].c, 0.045);
+dropMarble(0.52,0.45, INKS[1].c, 0.04);
 
 requestAnimationFrame(frame);
 
