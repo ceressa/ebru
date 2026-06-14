@@ -80,6 +80,63 @@
   .dock .palette{display:flex;gap:8px;align-items:center;height:46px}
   .dock .dot{width:27px;height:27px}
   @media (max-width:560px){ .t{min-width:46px;height:42px;font-size:9px} .dock .dot{width:24px;height:24px} }
+
+  /* kompakt tek satir bar */
+  .bar3{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:10;
+    display:flex;align-items:center;gap:5px;max-width:94vw;flex-wrap:wrap;justify-content:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:30px;padding:6px 9px;
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(40,32,18,.18)}
+  .bar3 .seg{display:flex;gap:3px}
+  .b{width:38px;height:38px;display:grid;place-items:center;border:1px solid transparent;border-radius:50%;
+    background:transparent;color:var(--ink);cursor:pointer;transition:.13s;padding:0}
+  .b svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .b:hover{background:rgba(255,255,255,.65)}
+  .b.active{background:var(--ink);color:var(--paper)}
+  .b.ink{background:var(--ink);color:var(--paper)}
+  .b.ink:hover{filter:brightness(1.18)}
+  .vsep{width:1px;height:24px;background:var(--line);margin:0 3px}
+  .bar3 .palette{display:flex;gap:6px;align-items:center}
+  .bar3 .dot{width:24px;height:24px}
+
+  /* daha menusu */
+  .menu{position:fixed;left:50%;bottom:72px;transform:translateX(-50%);z-index:11;display:none;
+    flex-direction:column;gap:11px;min-width:264px;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(40,32,18,.22)}
+  .menu.show{display:flex}
+  .mrow{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .mlbl{font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  .chips{display:flex;gap:5px}
+  .chip{padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.5);
+    color:var(--ink);font-family:inherit;font-size:11.5px;cursor:pointer;transition:.12s}
+  .chip:hover{background:#fff}
+  .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .tgl{padding:5px 13px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.5);
+    color:var(--ink);font-family:inherit;font-size:11.5px;cursor:pointer;min-width:62px}
+  .tgl.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  /* kagida bas (peel) */
+  .press{position:fixed;inset:0;z-index:30;display:none;place-items:center;
+    background:rgba(28,22,14,0);transition:background .5s;perspective:1500px}
+  .press.show{display:grid;background:rgba(28,22,14,.58)}
+  .sheet{position:relative;width:min(86vw,940px);max-height:76vh;aspect-ratio:3/2;
+    background-size:cover;background-position:center;border:8px solid #f5efe0;border-radius:3px;
+    box-shadow:0 34px 80px rgba(0,0,0,.55);transform-origin:50% 100%;filter:saturate(.94) contrast(.97)}
+  .sheet::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(130% 130% at 50% 0%, rgba(255,255,255,.14), rgba(120,100,70,.12));mix-blend-mode:overlay}
+  .sheet.go{animation:peel 1.5s cubic-bezier(.55,.05,.2,1)}
+  @keyframes peel{
+    0%{transform:translateY(2%) rotateX(0deg) scale(1.01)}
+    32%{transform:translateY(-7%) rotateX(46deg) scale(.985)}
+    60%{transform:translateY(-2%) rotateX(12deg) scale(1)}
+    100%{transform:translateY(0) rotateX(0deg) scale(1)}
+  }
+  .pacts{position:fixed;bottom:5.5vh;left:50%;transform:translateX(-50%);z-index:31;display:none;gap:10px}
+  .pacts.show{display:flex}
+  .pacts button{padding:10px 22px;border-radius:24px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink);font-family:inherit;font-size:13px;cursor:pointer;
+    backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  .pacts button#printSave{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
 </head>
 <body>
@@ -88,55 +145,43 @@
   <div class="brand"><b>EBRU</b><span>su üstünde mürekkep</span></div>
   <div class="hint" id="hint">Damla ile renk bırak　·　Biz / Tarak ile boyayı yay</div>
 
-  <div class="dock">
-    <div class="grp">
-      <span class="lbl">Araç</span>
-      <div class="seg" id="tools">
-        <button class="t active" data-tool="drop" title="Damla: yüzeye renk bırakır">
-          <svg viewBox="0 0 24 24"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg><span>Damla</span></button>
-        <button class="t" data-tool="biz" title="Biz: boya eklemeden var olan boyayı yayar">
-          <svg viewBox="0 0 24 24"><path d="M4 20L17 7"/><path d="M14 4l6 6"/></svg><span>Biz</span></button>
-        <button class="t" data-tool="comb" title="Tarak: boyasız, tarayarak çizgi açar">
-          <svg viewBox="0 0 24 24"><path d="M3 8h18"/><path d="M6 8v9M10 8v9M14 8v9M18 8v9"/></svg><span>Tarak</span></button>
-        <button class="t" data-tool="flower" title="Çiçek: simetrik çiçek motifi">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="6.4" r="2.4"/><circle cx="12" cy="17.6" r="2.4"/><circle cx="6.4" cy="12" r="2.4"/><circle cx="17.6" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.1"/></svg><span>Çiçek</span></button>
-      </div>
+  <div class="bar3">
+    <div class="seg" id="tools">
+      <button class="b active" data-tool="drop" title="Damla: yüzeye renk bırakır"><svg viewBox="0 0 24 24"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg></button>
+      <button class="b" data-tool="biz" title="Biz: boya eklemeden var olan boyayı yayar"><svg viewBox="0 0 24 24"><path d="M4 20L17 7"/><path d="M14 4l6 6"/></svg></button>
+      <button class="b" data-tool="comb" title="Tarak: boyasız, tarayarak çizgi açar"><svg viewBox="0 0 24 24"><path d="M3 8h18"/><path d="M6 8v9M10 8v9M14 8v9M18 8v9"/></svg></button>
+      <button class="b" data-tool="flower" title="Çiçek: simetrik çiçek"><svg viewBox="0 0 24 24"><circle cx="12" cy="6.4" r="2.3"/><circle cx="12" cy="17.6" r="2.3"/><circle cx="6.4" cy="12" r="2.3"/><circle cx="17.6" cy="12" r="2.3"/><circle cx="12" cy="12" r="2"/></svg></button>
     </div>
-
-    <div class="grp">
-      <span class="lbl">Renk</span>
-      <div class="palette" id="palette"></div>
-    </div>
-
-    <div class="grp">
-      <span class="lbl">Düzen</span>
-      <div class="seg">
-        <button class="t" id="symBtn" title="Simetri: kapalı → 2 → 4 → 6 → 8 kat">
-          <svg viewBox="0 0 24 24"><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9"/></svg><span>Simetri</span></button>
-        <button class="t" id="autoBtn" title="Otomatik akış: boştayken kendi kendine damlatır">
-          <svg viewBox="0 0 24 24"><path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5z"/></svg><span>Otomatik</span></button>
-        <button class="t" id="patBtn" title="Hazır desenler">
-          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span>Hazır</span></button>
-      </div>
-    </div>
-
-    <div class="grp">
-      <span class="lbl">Tuval</span>
-      <div class="seg">
-        <button class="t" id="clearBtn" title="Temizle">
-          <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg><span>Temizle</span></button>
-        <button class="t" id="saveBtn" title="PNG indir">
-          <svg viewBox="0 0 24 24"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14"/></svg><span>Kaydet</span></button>
-        <button class="t" id="soundBtn" title="Ortam sesi">
-          <svg viewBox="0 0 24 24"><path d="M9 17V6l9-2v11"/><circle cx="6.5" cy="17" r="2.5"/><circle cx="15.5" cy="15" r="2.5"/></svg><span>Ses</span></button>
-      </div>
-    </div>
+    <span class="vsep"></span>
+    <div class="palette" id="palette"></div>
+    <span class="vsep"></span>
+    <button class="b" id="clearBtn" title="Temizle"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
+    <button class="b" id="saveBtn" title="PNG indir"><svg viewBox="0 0 24 24"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14"/></svg></button>
+    <button class="b ink" id="pressBtn" title="Kağıda bas: deseni kağıda aktar"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H5V3z"/><path d="M15 3v4h4M8 13h8M8 17h6"/></svg></button>
+    <button class="b" id="moreBtn" title="Ayarlar: simetri, otomatik, desen, ses"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></button>
   </div>
 
-  <div class="presets" id="presets">
-    <button data-p="gelgit">Gel-git</button>
-    <button data-p="sal">Şal</button>
-    <button data-p="bulbul">Bülbül yuvası</button>
+  <div class="menu" id="moreMenu">
+    <div class="mrow"><span class="mlbl">Simetri</span>
+      <div class="chips" id="symChips">
+        <button class="chip on" data-s="1">Kapalı</button><button class="chip" data-s="2">2</button><button class="chip" data-s="4">4</button><button class="chip" data-s="6">6</button><button class="chip" data-s="8">8</button>
+      </div>
+    </div>
+    <div class="mrow"><span class="mlbl">Otomatik akış</span><button class="tgl" id="autoTgl">Kapalı</button></div>
+    <div class="mrow"><span class="mlbl">Hazır desen</span>
+      <div class="chips">
+        <button class="chip" data-p="gelgit">Gel-git</button><button class="chip" data-p="sal">Şal</button><button class="chip" data-p="bulbul">Bülbül</button>
+      </div>
+    </div>
+    <div class="mrow"><span class="mlbl">Ortam sesi</span><button class="tgl" id="soundTgl">Kapalı</button></div>
+  </div>
+
+  <div class="press" id="press">
+    <div class="sheet" id="sheet"></div>
+  </div>
+  <div class="pacts" id="printActions">
+    <button id="printSave">İndir</button>
+    <button id="printClose">Kapat</button>
   </div>
 
   <div class="fallback" id="fallback">
@@ -619,39 +664,52 @@ INKS.forEach((p,i)=>{
   b.addEventListener('click', ()=>{ current=p.c; pal.querySelectorAll('.dot').forEach(d=>d.classList.remove('active')); b.classList.add('active'); });
   pal.appendChild(b);
 });
-// simetri
-const SYMMETRIES=[1,2,4,6,8]; let symIdx=0;
-const symBtn=document.getElementById('symBtn'), symLbl=symBtn.querySelector('span');
-function updateSym(){ symBtn.classList.toggle('active', symmetry>1); symLbl.textContent = symmetry>1 ? ('Simetri '+symmetry) : 'Simetri'; }
-symBtn.addEventListener('click', ()=>{ symIdx=(symIdx+1)%SYMMETRIES.length; symmetry=SYMMETRIES[symIdx]; updateSym(); });
-updateSym();
+// ----- simetri (menu) -----
+const symChips=document.getElementById('symChips');
+function setSymVal(n){ symmetry=n; symChips.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', +c.dataset.s===n)); }
+symChips.querySelectorAll('.chip').forEach(c=>c.addEventListener('click', ()=>setSymVal(+c.dataset.s)));
 
-// arac secimi
+// ----- arac secimi -----
 const toolsEl=document.getElementById('tools');
 function selectTool(t){
   tool=t;
-  toolsEl.querySelectorAll('.t').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
-  if(t==='flower' && symmetry===1){ symmetry=6; symIdx=SYMMETRIES.indexOf(6); updateSym(); }
+  toolsEl.querySelectorAll('.b').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
+  if(t==='flower' && symmetry===1) setSymVal(6);
 }
-toolsEl.querySelectorAll('.t').forEach(b=>b.addEventListener('click', ()=>selectTool(b.dataset.tool)));
+toolsEl.querySelectorAll('.b').forEach(b=>b.addEventListener('click', ()=>selectTool(b.dataset.tool)));
 
-// otomatik
-document.getElementById('autoBtn').addEventListener('click', function(){ autoFlow=!autoFlow; this.classList.toggle('active', autoFlow); });
-
-// hazir desenler
-const presetsEl=document.getElementById('presets');
-document.getElementById('patBtn').addEventListener('click', e=>{ e.stopPropagation(); presetsEl.classList.toggle('show'); });
-presetsEl.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
-  presetsEl.classList.remove('show'); hideHint();
+// ----- daha menusu -----
+const moreMenu=document.getElementById('moreMenu');
+function closeMenu(){ moreMenu.classList.remove('show'); }
+document.getElementById('moreBtn').addEventListener('click', e=>{ e.stopPropagation(); moreMenu.classList.toggle('show'); });
+window.addEventListener('pointerdown', e=>{ if(!moreMenu.contains(e.target) && !e.target.closest('#moreBtn')) closeMenu(); }, true);
+document.getElementById('autoTgl').addEventListener('click', function(){ autoFlow=!autoFlow; this.classList.toggle('on', autoFlow); this.textContent=autoFlow?'Açık':'Kapalı'; });
+document.querySelectorAll('.chip[data-p]').forEach(b=>b.addEventListener('click', ()=>{
+  closeMenu(); hideHint();
   const p=b.dataset.p;
   if(p==='gelgit') presetGelGit(); else if(p==='sal') presetSal(); else presetBulbul();
 }));
-window.addEventListener('pointerdown', e=>{ if(!presetsEl.contains(e.target) && !e.target.closest('#patBtn')) presetsEl.classList.remove('show'); }, true);
+
+// ----- tuval -----
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   render();
-  const a=document.createElement('a'); a.download='suminagashi.png'; a.href=canvas.toDataURL('image/png'); a.click();
+  const a=document.createElement('a'); a.download='ebru.png'; a.href=canvas.toDataURL('image/png'); a.click();
 });
+
+// ----- kagida bas (peel efekti) -----
+let lastPrint=null;
+const pressEl=document.getElementById('press'), sheetEl=document.getElementById('sheet'), pacts=document.getElementById('printActions');
+document.getElementById('pressBtn').addEventListener('click', ()=>{
+  render(); lastPrint=canvas.toDataURL('image/png');
+  sheetEl.style.backgroundImage='url('+lastPrint+')';
+  sheetEl.style.aspectRatio=(canvas.width/canvas.height).toFixed(3);
+  pressEl.classList.add('show'); pacts.classList.remove('show');
+  sheetEl.classList.remove('go'); void sheetEl.offsetWidth; sheetEl.classList.add('go');
+  setTimeout(()=>pacts.classList.add('show'), 1500);
+});
+document.getElementById('printClose').addEventListener('click', ()=>{ pressEl.classList.remove('show'); pacts.classList.remove('show'); });
+document.getElementById('printSave').addEventListener('click', ()=>{ if(lastPrint){ const a=document.createElement('a'); a.download='ebru-kagit.png'; a.href=lastPrint; a.click(); } });
 
 /* ---------------- ortam sesi ---------------- */
 let audioOn=false, AC=null, master=null;
@@ -679,8 +737,8 @@ function playBell(){
   const g2=AC.createGain(); g2.gain.value=0.3; o.connect(g); o2.connect(g2); g2.connect(g); g.connect(master);
   o.start(t); o2.start(t); o.stop(t+1.9); o2.stop(t+1.9);
 }
-document.getElementById('soundBtn').addEventListener('click', function(){
-  if(!AC) initAudio(); AC.resume(); audioOn=!audioOn; this.classList.toggle('on', audioOn);
+document.getElementById('soundTgl').addEventListener('click', function(){
+  if(!AC) initAudio(); AC.resume(); audioOn=!audioOn; this.classList.toggle('on', audioOn); this.textContent=audioOn?'Açık':'Kapalı';
   master.gain.linearRampToValueAtTime(audioOn?0.55:0.0, AC.currentTime+0.6);
 });
 
